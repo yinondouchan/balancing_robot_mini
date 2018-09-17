@@ -1,0 +1,9 @@
+This folder contains drivers for Pololou's AltImu board in both Python and C++. Both are based on Pololou's drivers for Arduino found in https://www.pololu.com/product/2739
+
+Python: 
+
+Some guy with tons of experience in embedded and some other low-level stuff took the above Arduino drivers and modified them to work on Raspberry Pi with Python.
+
+C++:
+
+Why on earth did he implement it on python??? It's slow as a turtle! Therefore, I am trying to take the above Arduino drivers (which are already written in C++) and modify them to work with RaspberryPi in C++ using WiringPi. Wish me luck.
