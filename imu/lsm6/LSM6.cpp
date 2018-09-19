@@ -18,7 +18,6 @@
 LSM6::LSM6(void)
 {
   _device = device_auto;
-
   io_timeout = 0;  // 0 = no timeout
   did_timeout = false;
   a_full_scale = 2;
@@ -174,9 +173,9 @@ void LSM6::readAcc(void)
   a_raw.z = (int16_t)(zha << 8 | zla);
   
   // calculate acceleration in (g)
-  a.x = -(float)a_full_scale * ((float)a_raw.x / 32768.0);
-  a.y = -(float)a_full_scale * ((float)a_raw.y / 32768.0);
-  a.z = -(float)a_full_scale * ((float)a_raw.z / 32768.0);
+  a.x = -a_full_scale * (int32_t)a_raw.x * 1000 / 32768;
+  a.y = -a_full_scale * (int32_t)a_raw.y * 1000 / 32768;
+  a.z = -a_full_scale * (int32_t)a_raw.z * 1000 / 32768;
 }
 
 // Reads the 3 gyro channels and stores them in vector g
@@ -209,10 +208,10 @@ void LSM6::readGyro(void)
   g_raw.y = (int16_t)(yhg << 8 | ylg);
   g_raw.z = (int16_t)(zhg << 8 | zlg);
   
-  // calculate acceleration in (g)
-  g.x = (float)g_full_scale * ((float)g_raw.x / 32768.0);
-  g.y = (float)g_full_scale * ((float)g_raw.y / 32768.0);
-  g.z = (float)g_full_scale * ((float)g_raw.z / 32768.0);
+  // calculate angular velocity in (10 deg/s)
+  g.x = 10 * (int32_t)g_full_scale * g_raw.x / 32768;
+  g.y = 10 * (int32_t)g_full_scale * g_raw.y / 32768;
+  g.z = 10 * (int32_t)g_full_scale * g_raw.z / 32768;
 }
 
 // Reads all 6 channels of the LSM6 and stores them in the object variables
