@@ -16,7 +16,6 @@ significant bit) at this FS setting, so the raw reading of
 
 #include <Wire.h>
 #include "LSM6.h"
-#include "compl_filter.h"
 
 LSM6 imu;
 
@@ -38,14 +37,11 @@ void setup()
 void loop()
 {
   int16_t x, y, z;
-  compl_filter_read_angle(&imu, &x, &y, &z);
   imu.read();
 
-  /*snprintf(report, sizeof(report), "A: %6d %6d %6d    G: %6d %6d %6d",
+  snprintf(report, sizeof(report), "A: %6d %6d %6d    G: %6d %6d %6d",
     imu.a.x, imu.a.y, imu.a.z,
-    imu.g.x, imu.g.y, imu.g.z);*/
-  snprintf(report, sizeof(report), "Angle: %6d %6d %6d",
-   x, y, z);
+    imu.g.x, imu.g.y, imu.g.z);
   Serial.println(report);
 
   delay(100);
