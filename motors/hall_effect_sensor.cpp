@@ -1,30 +1,100 @@
 #include "hall_effect_sensor.h"
 
-uint8_t hall_effect_output1_state;
-uint8_t hall_effect_output2_state;
-int tick_count;
+// hall effect sensor states
+volatile uint8_t hall_effect1_output1_state;
+volatile uint8_t hall_effect1_output2_state;
+volatile uint8_t hall_effect2_output1_state;
+volatile uint8_t hall_effect2_output2_state;
 
-void sensor1_edge_change()
+volatile int tick_count1;
+volatile int tick_count2;
+
+ISR (PCINT1_vect) // handle pin change interrupt for D0 to D7
+{   
+    /*if(digitalRead(MOTOR1_HALL_EFFECT_OUT1_PIN) != hall_effect1_output1_state)
+    {
+        // motor 1 sensor 1 changed
+        hall_effect1_output1_state = !hall_effect1_output1_state;
+        tick_count1 += hall_effect1_output1_state == hall_effect1_output2_state ? 1 : -1;
+    }
+     
+    if(digitalRead(MOTOR1_HALL_EFFECT_OUT2_PIN) != hall_effect1_output2_state)
+    {
+        // motor 1 sensor 2 changed
+        hall_effect1_output2_state = !hall_effect1_output2_state;
+    }*/
+     
+    if(digitalRead(MOTOR2_HALL_EFFECT_OUT1_PIN) != hall_effect2_output1_state)
+    {
+        // motor 2 sensor 1 changed
+        hall_effect2_output1_state = hall_effect2_output1_state;
+        tick_count2 += hall_effect2_output1_state == hall_effect2_output2_state ? 1 : -1;
+    }
+     
+    if(digitalRead(MOTOR2_HALL_EFFECT_OUT2_PIN) != hall_effect2_output2_state)
+    {
+        // motor 2 sensor 2 changed
+        hall_effect2_output2_state = !hall_effect2_output2_state;
+    }
+     
+} 
+
+ISR (PCINT2_vect) // handle pin change interrupt for D0 to D7
+{   
+    if(digitalRead(MOTOR1_HALL_EFFECT_OUT1_PIN) != hall_effect1_output1_state)
+    {
+        // motor 1 sensor 1 changed
+        hall_effect1_output1_state = !hall_effect1_output1_state;
+        tick_count1 += hall_effect1_output1_state == hall_effect1_output2_state ? 1 : -1;
+    }
+     
+    if(digitalRead(MOTOR1_HALL_EFFECT_OUT2_PIN) != hall_effect1_output2_state)
+    {
+        // motor 1 sensor 2 changed
+        hall_effect1_output2_state = !hall_effect1_output2_state;
+    }
+     
+    /*if(digitalRead(MOTOR2_HALL_EFFECT_OUT1_PIN) != hall_effect2_output1_state)
+    {
+        // motor 2 sensor 1 changed
+        hall_effect2_output1_state = hall_effect2_output1_state;
+        tick_count2 += hall_effect2_output1_state == hall_effect2_output2_state ? 1 : -1;
+    }
+     
+    if(digitalRead(MOTOR2_HALL_EFFECT_OUT2_PIN) != hall_effect2_output2_state)
+    {
+        // motor 2 sensor 2 changed
+        hall_effect2_output2_state = !hall_effect2_output2_state;
+    }*/
+     
+} 
+
+int get_tick_count1()
 {
-	hall_effect_output1_state = digitalRead(MOTOR1_HALL_EFFECT_OUT1_PIN);
-	tick_count += hall_effect_output1_state == hall_effect_output2_state ? 1 : -1;
+	return tick_count1;
 }
 
-void sensor2_edge_change()
+int get_tick_count2()
 {
-	hall_effect_output2_state = digitalRead(MOTOR1_HALL_EFFECT_OUT2_PIN);
+	return tick_count2;
 }
 
-int get_tick_count()
+void pciSetup(byte pin)
 {
-	return tick_count;
+    *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
+    PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
+    PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
 }
 
 void init_hall_effect_sensors()
 {
-	hall_effect_output1_state = 0;
-	hall_effect_output2_state = 0;
-	tick_count = 0;
+        Serial.println("Initializing Hall Effect sensors");
+	hall_effect1_output1_state = 0;
+	hall_effect1_output2_state = 0;
+	hall_effect2_output1_state = 0;
+	hall_effect2_output2_state = 0;
+	tick_count1 = 0;
+	tick_count2 = 0;
 	
 	// set output pin to pullup
 	pinMode(MOTOR1_HALL_EFFECT_OUT1_PIN, INPUT_PULLUP); 
@@ -32,7 +102,9 @@ void init_hall_effect_sensors()
 	pinMode(MOTOR2_HALL_EFFECT_OUT1_PIN, INPUT_PULLUP); 
 	pinMode(MOTOR2_HALL_EFFECT_OUT2_PIN, INPUT_PULLUP); 
 	
-	// set falling and rising edge interrupts on this pin
-	/*wiringPiISR(hall_effect_output1_pin, INT_EDGE_BOTH, sensor1_edge_change);
-	wiringPiISR(hall_effect_output2_pin, INT_EDGE_BOTH, sensor2_edge_change);*/
+	// set pin change interrupts
+        pciSetup(MOTOR1_HALL_EFFECT_OUT1_PIN);
+        pciSetup(MOTOR1_HALL_EFFECT_OUT2_PIN);
+        pciSetup(MOTOR2_HALL_EFFECT_OUT1_PIN);
+        pciSetup(MOTOR2_HALL_EFFECT_OUT2_PIN);
 }
