@@ -88,10 +88,10 @@ class LSM6
     };
 
     vector<int16_t> a_raw; // raw accelerometer readings
-    vector<int16_t> g_raw; // raw gyro readings
+    vector<int32_t> g_raw; // raw gyro readings
     
     vector<int16_t> a; // accelerometer readings (milli-g)
-    vector<int16_t> g; // gyro readings (10 * deg/s)
+    vector<int32_t> g; // gyro readings (millideg/s)
 
     uint8_t last_status; // status of last I2C transmission
 

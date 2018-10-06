@@ -21,7 +21,7 @@ LSM6::LSM6(void)
   io_timeout = 0;  // 0 = no timeout
   did_timeout = false;
   a_full_scale = 2;
-  g_full_scale = 245;
+  g_full_scale = 1000;
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
@@ -109,8 +109,8 @@ void LSM6::enableDefault(void)
     // Gyro
 
     // 0x80 = 0b010000000
-    // ODR = 1000 (1.66 kHz (high performance)); FS_XL = 00 (245 dps)
-    writeReg(CTRL2_G, 0x80);
+    // ODR = 1000 (1.66 kHz (high performance)); FS_XL = 10 (1000 dps)
+    writeReg(CTRL2_G, 0x88);
 
     // Common
 
@@ -209,9 +209,9 @@ void LSM6::readGyro(void)
   g_raw.z = (int16_t)(zhg << 8 | zlg);
   
   // calculate angular velocity in (10 deg/s)
-  g.x = 10 * (int32_t)g_full_scale * g_raw.x / 32768;
-  g.y = 10 * (int32_t)g_full_scale * g_raw.y / 32768;
-  g.z = 10 * (int32_t)g_full_scale * g_raw.z / 32768;
+  g.x = -(int64_t)g_full_scale * g_raw.x * 1000 / 32768;
+  g.y = (int64_t)g_full_scale * g_raw.y * 1000 / 32768;
+  g.z = (int64_t)g_full_scale * g_raw.z * 1000 / 32768;
 }
 
 // Reads all 6 channels of the LSM6 and stores them in the object variables
