@@ -22,10 +22,6 @@ int32_t prev_cf_angle_x;
 int32_t prev_cf_angle_y;
 int32_t prev_cf_angle_z;
 
-int32_t cf_ang_vel_x;
-int32_t cf_ang_vel_y;
-int32_t cf_ang_vel_z;
-
 void calibrate_gyro(LSM6 *imu)
 {
     int i=0;
@@ -61,8 +57,8 @@ void compl_filter_read(LSM6 *imu)
 {
     // read accel and gyro
     imu->read();
-    long now = millis();
-    long dt = now - last_timestamp;
+    long now = micros();
+    unsigned long dt = now - last_timestamp;
     last_timestamp = now;
     
     // make sure accel and gyro were read at least one time for being able to integrate
@@ -72,28 +68,26 @@ void compl_filter_read(LSM6 *imu)
         return;
     }
     
-    // calculate accel angle
+    // calculate accel angle (700 us)
     float angle_float_x = atan2(-imu->a_raw.y, imu->a_raw.z) * 180 / M_PI;
-    float angle_float_y = atan2(-imu->a_raw.z, imu->a_raw.x) * 180 / M_PI;
-    float angle_float_z = atan2(-imu->a_raw.y, imu->a_raw.x) * 180 / M_PI;
-    accel_angle_x = angle_float_x * 1000;
-    accel_angle_y = angle_float_y * 1000;
-    accel_angle_z = angle_float_z * 1000;
+    //float angle_float_y = atan2(-imu->a_raw.z, imu->a_raw.x) * 180 / M_PI;
+    //float angle_float_z = atan2(-imu->a_raw.y, imu->a_raw.x) * 180 / M_PI;
 
-    int32_t unbiased_gyro_x = imu->g.x - gyro_bias_x;
-    int32_t unbiased_gyro_y = imu->g.y - gyro_bias_y;
-    int32_t unbiased_gyro_z = imu->g.z - gyro_bias_z;
+    // 160 us
+    accel_angle_x = angle_float_x * 1000;
+    //accel_angle_y = angle_float_y * 1000;
+    //accel_angle_z = angle_float_z * 1000;
+
+    // 12 us
+    int64_t unbiased_gyro_x = imu->g.x - gyro_bias_x;
+    //int64_t unbiased_gyro_y = imu->g.y - gyro_bias_y;
+    //int64_t unbiased_gyro_z = imu->g.z - gyro_bias_z;
     
-    // apply complementary filter
-    cf_angle_x = CF_CONST*(cf_angle_x + unbiased_gyro_x*dt/1000) + (1.0 - CF_CONST)*accel_angle_x;
-    cf_angle_y = CF_CONST*(cf_angle_y + unbiased_gyro_y*dt/1000) + (1.0 - CF_CONST)*accel_angle_y;
-    cf_angle_z = CF_CONST*(cf_angle_z + unbiased_gyro_z*dt/1000) + (1.0 - CF_CONST)*accel_angle_z;
-    
-    cf_ang_vel_x = 1000 * (cf_angle_x - prev_cf_angle_x) / dt;
-    cf_ang_vel_y = 1000 * (cf_angle_y - prev_cf_angle_y) / dt;
-    cf_ang_vel_z = 1000 * (cf_angle_z - prev_cf_angle_z) / dt;
-    
+    // apply complementary filter 300 us
+    cf_angle_x = CF_CONST*(cf_angle_x + unbiased_gyro_x*dt/1000000) + (1.0 - CF_CONST)*accel_angle_x;
+    //cf_angle_y = CF_CONST*(cf_angle_y + unbiased_gyro_y*dt/1000000) + (1.0 - CF_CONST)*accel_angle_y;
+    //cf_angle_z = CF_CONST*(cf_angle_z + unbiased_gyro_z*dt/1000000) + (1.0 - CF_CONST)*accel_angle_z;
     prev_cf_angle_x = cf_angle_x;
-    prev_cf_angle_y = cf_angle_y;
-    prev_cf_angle_z = cf_angle_z;
+    //prev_cf_angle_y = cf_angle_y;
+    //prev_cf_angle_z = cf_angle_z;
 }

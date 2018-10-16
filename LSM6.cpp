@@ -102,6 +102,8 @@ void LSM6::enableDefault(void)
   {
     // Accelerometer
 
+    writeReg(CTRL6_C, 0x00);
+
     // 0x80 = 0b10000000
     // ODR = 1000 (1.66 kHz (high performance)); FS_XL = 00 (+/-2 g full scale)
     writeReg(CTRL1_XL, 0x80);

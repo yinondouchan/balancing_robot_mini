@@ -9,7 +9,7 @@ volatile uint8_t hall_effect2_output2_state;
 volatile int tick_count_left;
 volatile int tick_count_right;
 
-ISR (PCINT0_vect) // handle pin change interrupt for pins A0 to A5
+ISR (PCINT0_vect) // handle pin change interrupt for pins D8 to D13
 {   
      if(digitalRead(RIGHT_MOTOR_HALL_EFFECT_OUT1_PIN) != hall_effect2_output1_state)
     {
