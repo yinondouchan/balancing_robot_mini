@@ -5,14 +5,14 @@
 #include <Arduino.h>
 
 // driver pins for left motor - phase/enable interface
-#define LEFT_MOTOR_NSLEEP 9
-#define LEFT_MOTOR_PHASE 6
-#define LEFT_MOTOR_PE_ENABLE 5
+#define LEFT_MOTOR_NSLEEP 6 //9
+#define LEFT_MOTOR_PHASE 2 //6
+#define LEFT_MOTOR_PE_ENABLE 5 //5
 
 // driver pins for left motor - phase/enable interface
-#define RIGHT_MOTOR_NSLEEP 11
-#define RIGHT_MOTOR_PHASE 12
-#define RIGHT_MOTOR_PE_ENABLE 10
+#define RIGHT_MOTOR_NSLEEP 10 //11
+#define RIGHT_MOTOR_PHASE 12 //12
+#define RIGHT_MOTOR_PE_ENABLE 9 //10
 
 // driver pins for right motor
 #define RIGHT_MOTOR_ENABLE_PIN 9
@@ -32,11 +32,10 @@
 #define VELOCITY_P 0.03
 #define VELOCITY_I 0.0000002
 #define VELOCITY_D 0.00001
-#define DIFF_P 0.0
 
-#define ANGLE_RATE_RATIO 0.4
-#define ANGLE_RESPONSE 0.006
-#define SPEED_RESPONSE 0.06
+#define ANGLE_RATE_RATIO 0.4 //0.4
+#define ANGLE_RESPONSE 0.002 //0.002
+#define SPEED_RESPONSE 0.02 //0.02
 #define POSITION_RESPONSE 0.000
 
 #define BALANCE_POINT_COEFF 0.00
@@ -64,6 +63,8 @@ void init_motors();
 // read velocities using the hall effect sensors in units of ticks per second
 void read_velocities();
 
-void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t pos);
+void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff);
+
+void encoderless_balance_point_control(int32_t angle, int32_t ang_vel);
 
 #endif // MOVE_MOTOR_H

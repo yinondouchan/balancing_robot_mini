@@ -9,18 +9,18 @@
 // left and right motor velocities in ticks per second
 int32_t motor_ctrl_right_velocity, motor_ctrl_left_velocity;
 
-int last_left_tick_count, last_right_tick_count;
+int32_t last_left_tick_count, last_right_tick_count;
 
 int32_t vel_p_left, vel_p_right;
 int32_t vel_i_left, vel_i_right;
-int32_t prev_vel;
 unsigned long vel_timestamp;
 unsigned long vel_ctrl_timestamp;
 bool read_vel_ctrl_once;
 
 bool read_vel_once;
 
-float balance_point_power;
+float balance_point_power, prev_bp_power;
+unsigned long balance_point_timestamp;
 
 // control a motor with power from -100 to 100
 void control_motor(uint8_t motor, int8_t power)
@@ -65,8 +65,8 @@ void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff)
     int32_t l_vel = motor_ctrl_left_velocity;
 
     // velocity errors
-    int32_t error_left = desired_vel - l_vel;
-    int32_t error_right = desired_vel - r_vel;
+    int32_t error_left = desired_vel - l_vel + desired_diff;
+    int32_t error_right = desired_vel - r_vel - desired_diff;
 
     // D components
     int32_t vel_d_left = 1000*(vel_p_left - error_left)/dt;
@@ -77,11 +77,9 @@ void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff)
     vel_p_right = error_right;
 
     // I components
-
     vel_i_left += vel_p_left * dt;
     vel_i_right += vel_p_right * dt;
 
-    
     CLIP(vel_i_left, -100 / VELOCITY_I, 100 / VELOCITY_I);
     CLIP(vel_i_right, -100 / VELOCITY_I, 100 / VELOCITY_I);
 
@@ -90,8 +88,6 @@ void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff)
 
     CLIP(power_left, -100, 100);
     CLIP(power_right, -100, 100);
-
-    //Serial.print(motor_ctrl_left_velocity); Serial.print(" "); Serial.println(motor_ctrl_right_velocity);
 
     control_motor_phase_en(LEFT_MOTOR, power_left, STOP_MODE_COAST);
     control_motor_phase_en(RIGHT_MOTOR, power_right, STOP_MODE_COAST);
@@ -157,19 +153,34 @@ void read_velocities()
     last_right_tick_count = tick_count_right;
 }
 
-void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t pos)
+void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff)
 {
+    unsigned long dt = micros() - balance_point_timestamp;
+    balance_point_timestamp = micros();
+    
     int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + angle - BALANCE_ANGLE;
 
-    balance_point_power += ANGLE_RESPONSE * rising_angle_offset + SPEED_RESPONSE * vel + POSITION_RESPONSE * pos;
+    balance_point_power += (ANGLE_RESPONSE * rising_angle_offset + SPEED_RESPONSE * vel) * dt / 1000;
     CLIP(balance_point_power, -10000, 10000);
 
-    //control_motor_phase_en(LEFT_MOTOR, balance_point_power, STOP_MODE_COAST);
-    //control_motor_phase_en(RIGHT_MOTOR, balance_point_power, STOP_MODE_COAST);
-    motor_ctrl_vel_diff(balance_point_power, 0);
-    motor_ctrl_vel_diff(balance_point_power, 0);
+    motor_ctrl_vel_diff(balance_point_power, vel_diff);
+    motor_ctrl_vel_diff(balance_point_power, vel_diff);
+}
 
-    prev_vel = vel;
+void encoderless_balance_point_control(int32_t angle, int32_t ang_vel)
+{
+    unsigned long dt = micros() - balance_point_timestamp;
+    balance_point_timestamp = micros();
+    
+    int32_t rising_angle_offset = ang_vel * 0.4 + angle - BALANCE_ANGLE;
+
+    balance_point_power += (0.00005 * rising_angle_offset) * dt / 1000 + 0.005 * prev_bp_power;
+    CLIP(balance_point_power, -100, 100);
+
+    control_motor_phase_en(LEFT_MOTOR, balance_point_power, STOP_MODE_COAST);
+    control_motor_phase_en(RIGHT_MOTOR, balance_point_power, STOP_MODE_COAST);
+
+    prev_bp_power = balance_point_power;
 }
 
 void init_motors()
@@ -183,6 +194,7 @@ void init_motors()
   vel_i_left = 0;
   vel_i_right = 0;
   balance_point_power = 0.0;
+  prev_bp_power = 0.0;
   vel_p_left = 0;
   vel_p_right = 0;
   vel_i_left = 0;
@@ -190,6 +202,7 @@ void init_motors()
   read_vel_ctrl_once = false;
   
   vel_ctrl_timestamp = micros();
+  balance_point_timestamp = micros();
   
   read_vel_once = false;
 }

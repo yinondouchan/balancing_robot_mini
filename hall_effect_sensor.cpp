@@ -6,8 +6,8 @@ volatile uint8_t hall_effect1_output2_state;
 volatile uint8_t hall_effect2_output1_state;
 volatile uint8_t hall_effect2_output2_state;
 
-volatile int tick_count_left;
-volatile int tick_count_right;
+volatile int32_t tick_count_left;
+volatile int32_t tick_count_right;
 
 ISR (PCINT0_vect) // handle pin change interrupt for pins D8 to D13
 {   

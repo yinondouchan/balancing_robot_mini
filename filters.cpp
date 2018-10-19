@@ -3,7 +3,7 @@
 #include "filters.h"
 
 #define CF_CONST 0.99
-#define GYRO_CALIBRATION_NSAMPLES 100
+#define GYRO_CALIBRATION_NSAMPLES 200
 
 bool read_once;
 long last_timestamp;
@@ -36,7 +36,7 @@ void calibrate_gyro(LSM6 *imu)
         gyro_bias_x += imu->g.x;
         gyro_bias_y += imu->g.y;
         gyro_bias_z += imu->g.z;
-        delay(10);
+        delay(5);
     }
     
     gyro_bias_x /= GYRO_CALIBRATION_NSAMPLES;
