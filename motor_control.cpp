@@ -1,9 +1,6 @@
 #include "motor_control.h"
 #include "hall_effect_sensor.h"
 
-#define ZERO_MOTION_POWER 0
-#define BALANCE_ANGLE -10000  // measured angle where robot is balanced
-
 #define CLIP(x, val_low, val_high) x = x > val_high ? val_high : x < val_low ? val_low : x;
 
 // left and right motor velocities in ticks per second
@@ -13,10 +10,13 @@ int32_t last_left_tick_count, last_right_tick_count;
 
 int32_t vel_p_left, vel_p_right;
 int32_t vel_i_left, vel_i_right;
+int32_t prev_vel;
+int32_t prev_angle;
+float vel_lpf;
 unsigned long vel_timestamp;
 unsigned long vel_ctrl_timestamp;
 bool read_vel_ctrl_once;
-
+bool read_bp_once;
 bool read_vel_once;
 
 float balance_point_power, prev_bp_power;
@@ -49,7 +49,7 @@ void control_motor(uint8_t motor, int8_t power)
     }
 }
 
-void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff)
+void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff, bool stop_mode)
 {
     unsigned long dt = micros() - vel_ctrl_timestamp;
     vel_ctrl_timestamp = micros();
@@ -89,8 +89,8 @@ void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff)
     CLIP(power_left, -100, 100);
     CLIP(power_right, -100, 100);
 
-    control_motor_phase_en(LEFT_MOTOR, power_left, STOP_MODE_COAST);
-    control_motor_phase_en(RIGHT_MOTOR, power_right, STOP_MODE_COAST);
+    control_motor_phase_en(LEFT_MOTOR, power_left, stop_mode);
+    control_motor_phase_en(RIGHT_MOTOR, power_right, stop_mode);
 }
 
 // control a motor with power from -100 to 100
@@ -153,34 +153,43 @@ void read_velocities()
     last_right_tick_count = tick_count_right;
 }
 
-void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff)
+void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff, int32_t pos)
 {
     unsigned long dt = micros() - balance_point_timestamp;
     balance_point_timestamp = micros();
+
+    if (!read_bp_once)
+    {
+        read_bp_once = true;
+        return;
+    }
+
+    vel_lpf = VEL_LPF_TC / (VEL_LPF_TC + dt) * vel_lpf + dt / (VEL_LPF_TC + dt) * vel;
+    
+    int32_t balance_angle = angle - BALANCE_ANGLE;
+    //bool falling = ((balance_angle >= 0) && (ang_vel >= 0)) || ((balance_angle < 0) && (ang_vel < 0));
     
     int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + angle - BALANCE_ANGLE;
 
     balance_point_power += (ANGLE_RESPONSE * rising_angle_offset + SPEED_RESPONSE * vel) * dt / 1000;
     CLIP(balance_point_power, -10000, 10000);
 
-    motor_ctrl_vel_diff(balance_point_power, vel_diff);
-    motor_ctrl_vel_diff(balance_point_power, vel_diff);
+    float power = balance_point_power + 1.2 * vel_lpf - (100000.0  / dt) * (vel_lpf - prev_vel);
+    CLIP(power, -10000, 10000);
+
+    motor_ctrl_vel_diff(power, vel_diff, STOP_MODE_COAST);
+    motor_ctrl_vel_diff(power, vel_diff, STOP_MODE_COAST);
+
+    prev_vel = vel_lpf;
+    //prev_angle = balance_angle;
 }
 
-void encoderless_balance_point_control(int32_t angle, int32_t ang_vel)
+void position_control(int32_t angle, int32_t ang_vel, int32_t max_vel, int32_t vel_diff, int32_t pos)
 {
-    unsigned long dt = micros() - balance_point_timestamp;
-    balance_point_timestamp = micros();
+    int32_t output_vel = pos;
+    CLIP(output_vel, -max_vel, max_vel);
     
-    int32_t rising_angle_offset = ang_vel * 0.4 + angle - BALANCE_ANGLE;
-
-    balance_point_power += (0.00005 * rising_angle_offset) * dt / 1000 + 0.005 * prev_bp_power;
-    CLIP(balance_point_power, -100, 100);
-
-    control_motor_phase_en(LEFT_MOTOR, balance_point_power, STOP_MODE_COAST);
-    control_motor_phase_en(RIGHT_MOTOR, balance_point_power, STOP_MODE_COAST);
-
-    prev_bp_power = balance_point_power;
+    balance_point_control(angle, ang_vel, output_vel, vel_diff, pos);
 }
 
 void init_motors()
@@ -199,7 +208,11 @@ void init_motors()
   vel_p_right = 0;
   vel_i_left = 0;
   vel_i_right = 0;
+  prev_vel = 0;
+  prev_angle = 0;
+  vel_lpf = 0;
   read_vel_ctrl_once = false;
+  read_bp_once = false;
   
   vel_ctrl_timestamp = micros();
   balance_point_timestamp = micros();

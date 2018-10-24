@@ -5,9 +5,11 @@
 #include "hall_effect_sensor.h"
 #include "ir.h"
 
+#define ACCEL_LPF_TC 600000.0
+
 LSM6 imu;
 
-int32_t x, y, z, wx, wy, wz;
+int32_t x, y, z, wx, wy, wz, ctrl_vel;
 unsigned long timestamp, time_diff;
 
 bool upright;
@@ -46,12 +48,15 @@ void setup()
   calibrate_gyro(&imu);
   Serial.println("Done calibrating gyroscope");
   
-  timestamp = millis();
+  timestamp = micros();
 }
 
 void loop()
 {
-  //timestamp = micros();
+  unsigned long now = micros();
+  unsigned long dt = now - timestamp;
+  timestamp = now;
+  
   // get tilt angle
   compl_filter_read(&imu);
   x = cf_angle_x - 90000;
@@ -75,10 +80,14 @@ void loop()
   {
       control_motor_phase_en(LEFT_MOTOR, 0, STOP_MODE_BRAKE);
       control_motor_phase_en(RIGHT_MOTOR, 0, STOP_MODE_BRAKE);
-      upright = (x > -15000) && (x < 15000);
+      upright = (x > (BALANCE_ANGLE - 20000)) && (x < (BALANCE_ANGLE + 20000));
       return;
   }
 
+  // put a low pass filter on the desired velocity in order to smoothen
+  ctrl_vel = ACCEL_LPF_TC / (ACCEL_LPF_TC + dt) * ctrl_vel + dt / (ACCEL_LPF_TC + dt) * ir_desired_vel;
+  
   // balance the robot
-  balance_point_control(x, wx, (motor_ctrl_right_velocity + motor_ctrl_left_velocity)/2 - ir_ctrl_vel, ir_ctrl_vel_diff);
+  //position_control(x, wx, 150, ir_ctrl_vel_diff, (t_left + t_right) / 2 - ctrl_vel);
+  balance_point_control(x, wx, (motor_ctrl_right_velocity + motor_ctrl_left_velocity)/2 - ctrl_vel, ir_ctrl_vel_diff, (t_left + t_right) / 2);
 }

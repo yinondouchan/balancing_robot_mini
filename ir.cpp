@@ -11,7 +11,7 @@
 #define SELECT 0x10EF20DF
 #define IR_REPEAT 0xFFFFFFFF
 
-volatile int32_t ir_ctrl_vel;
+volatile int32_t ir_desired_vel;
 volatile int32_t ir_ctrl_vel_diff;
 volatile int32_t ir_absolute_vel;
 volatile int32_t last_cmd;
@@ -21,7 +21,7 @@ decode_results ir_results;
 
 void ir_init()
 {
-    ir_ctrl_vel = 0;
+    ir_desired_vel = 0;
     ir_ctrl_vel_diff = 0;
     ir_absolute_vel = 200;
     ir_receiver.enableIRIn(); // Start the receiver
@@ -38,7 +38,7 @@ bool ir_read()
 }
 
 void ir_control()
-{
+{   
     if (ir_read())
     {
         int32_t value = ir_results.value;
@@ -64,11 +64,11 @@ void ir_control()
         }
         if (value == UP) 
         {
-            ir_ctrl_vel += ir_absolute_vel;
+            ir_desired_vel += ir_absolute_vel;
         }
         if (value == DOWN) 
         {
-            ir_ctrl_vel -= ir_absolute_vel;
+            ir_desired_vel -= ir_absolute_vel;
         }
         if (value == LEFT) 
         {
@@ -80,7 +80,7 @@ void ir_control()
         }
         if (value == SELECT) 
         {
-            ir_ctrl_vel = 0;
+            ir_desired_vel = 0;
             ir_ctrl_vel_diff = 0;
         }
 

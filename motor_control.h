@@ -33,6 +33,7 @@
 #define VELOCITY_I 0.0000002
 #define VELOCITY_D 0.00001
 
+#define VEL_LPF_TC 200000.0
 #define ANGLE_RATE_RATIO 0.4 //0.4
 #define ANGLE_RESPONSE 0.002 //0.002
 #define SPEED_RESPONSE 0.02 //0.02
@@ -46,6 +47,9 @@
 #define LEFT_MOTOR 0
 #define RIGHT_MOTOR 1
 
+#define BALANCE_ANGLE -10000  // measured angle where robot is balanced
+#define ZERO_MOTION_POWER 0
+
 extern int32_t motor_ctrl_right_velocity, motor_ctrl_left_velocity;
 
 // control the motor from power -100 to 100
@@ -55,7 +59,7 @@ void control_motor(uint8_t motor, int8_t power);
 void control_motor_phase_en(uint8_t motor, int8_t power, bool stop_mode);
 
 // PID control on motor velocity and tick diff
-void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff);
+void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff, bool stop_mode);
 
 // initialize motors
 void init_motors();
@@ -63,8 +67,8 @@ void init_motors();
 // read velocities using the hall effect sensors in units of ticks per second
 void read_velocities();
 
-void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff);
+void position_control(int32_t angle, int32_t ang_vel, int32_t max_vel, int32_t vel_diff, int32_t pos);
 
-void encoderless_balance_point_control(int32_t angle, int32_t ang_vel);
+void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff, int32_t pos);
 
 #endif // MOVE_MOTOR_H
