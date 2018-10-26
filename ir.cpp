@@ -37,7 +37,7 @@ bool ir_read()
     return false;
 }
 
-void ir_control()
+void ir_control_read()
 {   
     if (ir_read())
     {

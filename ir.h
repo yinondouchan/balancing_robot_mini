@@ -16,6 +16,6 @@ void ir_init();
 
 bool ir_read();
 
-void ir_control();
+void ir_control_read();
 
 #endif // IR_H

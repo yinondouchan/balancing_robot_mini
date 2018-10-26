@@ -1,6 +1,10 @@
+#include "ir.h"
+#include "LSM6.h"
+#include "filters.h"
 #include "motor_control.h"
 #include "hall_effect_sensor.h"
 
+#define ACCEL_LPF_TC 600000.0
 #define CLIP(x, val_low, val_high) x = x > val_high ? val_high : x < val_low ? val_low : x;
 
 // left and right motor velocities in ticks per second
@@ -11,7 +15,8 @@ int32_t last_left_tick_count, last_right_tick_count;
 int32_t vel_p_left, vel_p_right;
 int32_t vel_i_left, vel_i_right;
 int32_t prev_vel;
-int32_t prev_angle;
+int32_t prev_pos_error;
+
 float vel_lpf;
 unsigned long vel_timestamp;
 unsigned long vel_ctrl_timestamp;
@@ -21,6 +26,11 @@ bool read_vel_once;
 
 float balance_point_power, prev_bp_power;
 unsigned long balance_point_timestamp;
+
+unsigned long pos_timestamp;
+int32_t pos_output_vel, pos_output_vel_lpf;
+bool read_pos_once;
+int32_t pos_error_sum;
 
 // control a motor with power from -100 to 100
 void control_motor(uint8_t motor, int8_t power)
@@ -153,43 +163,72 @@ void read_velocities()
     last_right_tick_count = tick_count_right;
 }
 
-void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff, int32_t pos)
+void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel)
 {
+    // measure time
     unsigned long dt = micros() - balance_point_timestamp;
     balance_point_timestamp = micros();
 
+    // get angle, angular velocity and velocity from IMU and encoders
+    int32_t angle = cf_angle_x - 90000;
+    int32_t ang_vel = imu->g.x - gyro_bias_x;
+    int32_t vel = (motor_ctrl_right_velocity + motor_ctrl_left_velocity)/2 - desired_vel;
+
+    // do not control if wasn't here at least once in order for dt to be measured correctly
     if (!read_bp_once)
     {
         read_bp_once = true;
         return;
     }
 
+    // low pass filter on given linear velocity
     vel_lpf = VEL_LPF_TC / (VEL_LPF_TC + dt) * vel_lpf + dt / (VEL_LPF_TC + dt) * vel;
-    
+
     int32_t balance_angle = angle - BALANCE_ANGLE;
-    //bool falling = ((balance_angle >= 0) && (ang_vel >= 0)) || ((balance_angle < 0) && (ang_vel < 0));
-    
     int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + angle - BALANCE_ANGLE;
 
-    balance_point_power += (ANGLE_RESPONSE * rising_angle_offset + SPEED_RESPONSE * vel) * dt / 1000;
+    // add to power the tilt-angle element and the I element of the speed
+    balance_point_power += (ANGLE_RESPONSE * rising_angle_offset + BP_SPEED_I * vel) * dt / 1000;
     CLIP(balance_point_power, -10000, 10000);
 
-    float power = balance_point_power + 1.2 * vel_lpf - (100000.0  / dt) * (vel_lpf - prev_vel);
+    // add to power the P and D elements for speed
+    float power = balance_point_power - BP_SPEED_P * vel_lpf - (BP_SPEED_D  / dt) * (vel_lpf - prev_vel);
     CLIP(power, -10000, 10000);
 
-    motor_ctrl_vel_diff(power, vel_diff, STOP_MODE_COAST);
-    motor_ctrl_vel_diff(power, vel_diff, STOP_MODE_COAST);
+    // control motor velocities
+    motor_ctrl_vel_diff(power, desired_ang_vel, STOP_MODE_COAST);
 
     prev_vel = vel_lpf;
-    //prev_angle = balance_angle;
 }
 
-void position_control(int32_t angle, int32_t ang_vel, int32_t max_vel, int32_t vel_diff, int32_t pos)
+void position_control(LSM6 *imu, int32_t desired_position, int32_t max_velocity, int32_t desired_ang_vel)
 {
-    int32_t output_vel = pos;
-    CLIP(output_vel, -max_vel, max_vel);
+    int32_t t_right = get_tick_count_right();
+    int32_t t_left = get_tick_count_left();
+    int32_t actual_position = (t_right + t_left) / 2;
+    int32_t pos_error = desired_position - actual_position;
+    unsigned long now = micros();
+    unsigned long dt = now - pos_timestamp;
+
+    pos_error_sum += pos_error * dt;
+    pos_output_vel = -2.0 * pos_error + 0.001 * pos_error_sum;// + 100000.0 * (pos_error - prev_pos_error) / dt;
+    CLIP(pos_error_sum, -10000, 10000);
+
+    pos_timestamp = now;
     
-    balance_point_control(angle, ang_vel, output_vel, vel_diff, pos);
+    // do not control if wasn't here at least once in order for dt to be measured correctly
+    if (!read_pos_once)
+    {
+        read_pos_once = true;
+        return;
+    }
+    
+    CLIP(pos_output_vel, -max_velocity, max_velocity);
+    pos_output_vel_lpf = 600000.0 / (600000.0 + dt) * pos_output_vel_lpf + dt / (600000.0 + dt) * pos_output_vel;
+
+    balance_point_control(imu, pos_output_vel_lpf, desired_ang_vel);
+
+    prev_pos_error = pos_error;
 }
 
 void init_motors()
@@ -208,11 +247,14 @@ void init_motors()
   vel_p_right = 0;
   vel_i_left = 0;
   vel_i_right = 0;
-  prev_vel = 0;
-  prev_angle = 0;
+  prev_vel = 0; 
+  prev_pos_error = 0;
+  pos_error_sum = 0;
   vel_lpf = 0;
   read_vel_ctrl_once = false;
   read_bp_once = false;
+  read_pos_once = false;
+  pos_output_vel_lpf = 0;
   
   vel_ctrl_timestamp = micros();
   balance_point_timestamp = micros();

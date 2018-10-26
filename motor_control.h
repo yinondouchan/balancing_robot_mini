@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <Arduino.h>
 
+#include "LSM6.h"
+
 // driver pins for left motor - phase/enable interface
 #define LEFT_MOTOR_NSLEEP 6 //9
 #define LEFT_MOTOR_PHASE 2 //6
@@ -34,10 +36,12 @@
 #define VELOCITY_D 0.00001
 
 #define VEL_LPF_TC 200000.0
-#define ANGLE_RATE_RATIO 0.4 //0.4
-#define ANGLE_RESPONSE 0.002 //0.002
-#define SPEED_RESPONSE 0.02 //0.02
-#define POSITION_RESPONSE 0.000
+#define ANGLE_RATE_RATIO 0.4
+#define ANGLE_RESPONSE 0.002
+
+#define BP_SPEED_P -1.2
+#define BP_SPEED_I 0.02
+#define BP_SPEED_D 100000.0
 
 #define BALANCE_POINT_COEFF 0.00
 
@@ -67,8 +71,8 @@ void init_motors();
 // read velocities using the hall effect sensors in units of ticks per second
 void read_velocities();
 
-void position_control(int32_t angle, int32_t ang_vel, int32_t max_vel, int32_t vel_diff, int32_t pos);
+void position_control(LSM6 *imu, int32_t desired_position, int32_t max_velocity, int32_t desired_ang_vel);
 
-void balance_point_control(int32_t angle, int32_t ang_vel, int32_t vel, int32_t vel_diff, int32_t pos);
+void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
 
 #endif // MOVE_MOTOR_H

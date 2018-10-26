@@ -9,7 +9,7 @@
 
 LSM6 imu;
 
-int32_t x, y, z, wx, wy, wz, ctrl_vel;
+int32_t x, y, z, wx, wy, wz, ctrl_vel, ctrl_pos;
 unsigned long timestamp, time_diff;
 
 bool upright;
@@ -61,17 +61,9 @@ void loop()
   compl_filter_read(&imu);
   x = cf_angle_x - 90000;
 
-  // get tilt angular velocity
-  int32_t imu_gx = imu.g.x;
-  wx = imu_gx - gyro_bias_x;
-
-  // get tick count from motor encoders
-  int32_t t_right = get_tick_count_right();
-  int32_t t_left = get_tick_count_left();
-
   // get motor velocities in ticks per second
   read_velocities();
-  ir_control();
+  ir_control_read();
 
   if ((x < -60000) || (x > 60000)) upright = false;
 
@@ -84,10 +76,10 @@ void loop()
       return;
   }
 
-  // put a low pass filter on the desired velocity in order to smoothen
+  // put a low pass filter on the desired velocity in order to smoothen it
   ctrl_vel = ACCEL_LPF_TC / (ACCEL_LPF_TC + dt) * ctrl_vel + dt / (ACCEL_LPF_TC + dt) * ir_desired_vel;
   
   // balance the robot
-  //position_control(x, wx, 150, ir_ctrl_vel_diff, (t_left + t_right) / 2 - ctrl_vel);
-  balance_point_control(x, wx, (motor_ctrl_right_velocity + motor_ctrl_left_velocity)/2 - ctrl_vel, ir_ctrl_vel_diff, (t_left + t_right) / 2);
+  //position_control(&imu, ir_desired_vel, 2000, ir_ctrl_vel_diff);
+  balance_point_control(&imu, ctrl_vel, ir_ctrl_vel_diff);
 }
