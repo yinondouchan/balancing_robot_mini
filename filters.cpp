@@ -46,7 +46,7 @@ void calibrate_gyro(LSM6 *imu)
 
 void compl_filter_init()
 {   
-    cf_angle_x = 0;
+    cf_angle_x = 90000;
     cf_angle_y = 0;
     cf_angle_z = 0;
     
@@ -68,17 +68,15 @@ void compl_filter_read(LSM6 *imu)
         return;
     }
     
-    // calculate accel angle (700 us)
-    float angle_float_x = atan2(-imu->a_raw.y, imu->a_raw.z) * 180 / M_PI;
+    // calculate accel angle
+    float angle_float_x = atan2(imu->a_raw.z, imu->a_raw.y) * 180 / M_PI;
     //float angle_float_y = atan2(-imu->a_raw.z, imu->a_raw.x) * 180 / M_PI;
     //float angle_float_z = atan2(-imu->a_raw.y, imu->a_raw.x) * 180 / M_PI;
 
-    // 160 us
     accel_angle_x = angle_float_x * 1000;
     //accel_angle_y = angle_float_y * 1000;
     //accel_angle_z = angle_float_z * 1000;
 
-    // 12 us
     int64_t unbiased_gyro_x = imu->g.x - gyro_bias_x;
     //int64_t unbiased_gyro_y = imu->g.y - gyro_bias_y;
     //int64_t unbiased_gyro_z = imu->g.z - gyro_bias_z;

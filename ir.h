@@ -9,6 +9,7 @@
 
 #define IR_PIN 4
 
+extern volatile int32_t ir_absolute_vel;
 extern volatile int32_t ir_desired_vel;
 extern volatile int32_t ir_ctrl_vel_diff;
 

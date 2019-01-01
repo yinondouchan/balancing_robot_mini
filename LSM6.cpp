@@ -20,7 +20,7 @@ LSM6::LSM6(void)
   _device = device_auto;
   io_timeout = 0;  // 0 = no timeout
   did_timeout = false;
-  a_full_scale = 2;
+  a_full_scale = 8;
   g_full_scale = 1000;
 }
 
@@ -105,8 +105,8 @@ void LSM6::enableDefault(void)
     writeReg(CTRL6_C, 0x00);
 
     // 0x80 = 0b10000000
-    // ODR = 1000 (1.66 kHz (high performance)); FS_XL = 00 (+/-2 g full scale)
-    writeReg(CTRL1_XL, 0x80);
+    // ODR = 1000 (1.66 kHz (high performance)); FS_XL = 11 (+/-8 g full scale)
+    writeReg(CTRL1_XL, 0x8C);
 
     // Gyro
 
