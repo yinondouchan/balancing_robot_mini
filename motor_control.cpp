@@ -187,7 +187,7 @@ void read_velocities()
     last_right_tick_count = tick_count_right;
 }
 
-void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel)
+void balance_point_control_old(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel)
 {
     // measure time
     unsigned long dt = micros() - balance_point_timestamp;
@@ -230,7 +230,7 @@ void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_v
     prev_angle = angle_lpf;
 }
 
-void balance_point_control2(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel)
+void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel)
 {
     // measure time
     unsigned long dt = micros() - balance_point_timestamp;
@@ -253,7 +253,7 @@ void balance_point_control2(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_
 
     bp_i += 0.00001 * vel;
     CLIP(bp_i, -90000, 90000);
-    int32_t bp_angle_offset = 20.0 * vel + bp_i * dt + (5000000.0 / dt) * (vel_lpf - prev_vel);
+    int32_t bp_angle_offset = 20.0 * vel + bp_i * dt + (7500000.0 / dt) * (vel_lpf - prev_vel);
     CLIP(bp_angle_offset, -90000, 90000);
     
     int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + angle - BALANCE_ANGLE - bp_angle_offset;
@@ -262,8 +262,12 @@ void balance_point_control2(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_
     balance_point_power += (ANGLE_RESPONSE * rising_angle_offset) * dt / 1000;
     CLIP(balance_point_power, -10000, 10000);
 
+    // added a D element which eliminates oscillations
+    float power = balance_point_power + (BP_SPEED_D  / dt) * (vel_lpf - prev_vel);
+    CLIP(power, -10000, 10000);
+
     // control motor velocities
-    motor_ctrl_vel_diff(balance_point_power, desired_ang_vel, STOP_MODE_BRAKE);
+    motor_ctrl_vel_diff(power, desired_ang_vel, STOP_MODE_BRAKE);
 
     prev_vel = vel_lpf;
 }

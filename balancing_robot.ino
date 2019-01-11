@@ -90,7 +90,7 @@ void loop()
       return;
   }
 
-  if ((bt_desired_vel == 0) && bt_desired_vel_diff == 0) calibrate_balance_angle();
+  //if ((bt_desired_vel == 0) && bt_desired_vel_diff == 0) calibrate_balance_angle();
 
   // put a low pass filter on the desired velocity in order to smoothen it
   //ctrl_vel = ACCEL_LPF_TC / (ACCEL_LPF_TC + dt) * ctrl_vel + dt / (ACCEL_LPF_TC + dt) * ir_desired_vel;

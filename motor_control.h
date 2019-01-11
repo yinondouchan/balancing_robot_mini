@@ -79,7 +79,7 @@ void position_control(LSM6 *imu, int32_t desired_position, int32_t max_velocity,
 
 void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
 
-void balance_point_control2(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
+void balance_point_control_old(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
 
 void simple_pid_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
 
