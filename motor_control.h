@@ -32,7 +32,7 @@
 
 // PID variables for velocity and difference control
 #define VELOCITY_P 0.03
-#define VELOCITY_I 0.0000002
+#define VELOCITY_I 0.0000004
 #define VELOCITY_D 0.00001
 
 #define VEL_LPF_TC 200000.0

@@ -148,8 +148,8 @@ void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff, bool stop_mo
     vel_i_left += vel_p_left * dt;
     vel_i_right += vel_p_right * dt;
 
-    CLIP(vel_i_left, -100 / VELOCITY_I, 100 / VELOCITY_I);
-    CLIP(vel_i_right, -100 / VELOCITY_I, 100 / VELOCITY_I);
+    CLIP(vel_i_left, -50 / VELOCITY_I, 50 / VELOCITY_I);
+    CLIP(vel_i_right, -50 / VELOCITY_I, 50 / VELOCITY_I);
 
     int32_t power_left = VELOCITY_P * vel_p_left + VELOCITY_I * vel_i_left + VELOCITY_D * vel_d_left;
     int32_t power_right = VELOCITY_P * vel_p_right + VELOCITY_I * vel_i_right + VELOCITY_D * vel_d_right;
@@ -210,7 +210,7 @@ void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_v
     //angle_lpf = ANGLE_LPF_TC / (ANGLE_LPF_TC + dt) * angle_lpf + dt / (ANGLE_LPF_TC + dt) * angle;
 
     int32_t balance_angle = angle - BALANCE_ANGLE - trimming;
-    int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + balance_angle;// + 1.0 * (angle - prev_angle) / dt;
+    int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + balance_angle + 1.0 * (angle - prev_angle) / dt;
 
     /*float angle_response = max(0.001 - abs(ANGLE_RESPONSE * rising_angle_offset - BP_SPEED_I * vel) / 10000.0, ANGLE_RESPONSE);
     float speed_respose = BP_SPEED_I + (0.02 - BP_SPEED_I) * ((angle_response - ANGLE_RESPONSE) / (0.001 - ANGLE_RESPONSE));
@@ -249,11 +249,11 @@ void balance_point_control2(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_
     }
 
     // low pass filter on given linear velocity
-    vel_lpf = VEL_LPF_TC / (VEL_LPF_TC + dt) * vel_lpf + dt / (VEL_LPF_TC + dt) * vel;
+    vel_lpf = VEL_LPF_TC2 / (VEL_LPF_TC2 + dt) * vel_lpf + dt / (VEL_LPF_TC2 + dt) * vel;
 
-    bp_i += 0.0000 * vel;
+    bp_i += 0.00001 * vel;
     CLIP(bp_i, -90000, 90000);
-    int32_t bp_angle_offset = 10.0 * vel + bp_i * dt + (5000000.0 / dt) * (vel_lpf - prev_vel);
+    int32_t bp_angle_offset = 20.0 * vel + bp_i * dt + (5000000.0 / dt) * (vel_lpf - prev_vel);
     CLIP(bp_angle_offset, -90000, 90000);
     
     int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + angle - BALANCE_ANGLE - bp_angle_offset;
@@ -263,7 +263,7 @@ void balance_point_control2(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_
     CLIP(balance_point_power, -10000, 10000);
 
     // control motor velocities
-    motor_ctrl_vel_diff(balance_point_power, desired_ang_vel, STOP_MODE_COAST);
+    motor_ctrl_vel_diff(balance_point_power, desired_ang_vel, STOP_MODE_BRAKE);
 
     prev_vel = vel_lpf;
 }
