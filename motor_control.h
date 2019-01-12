@@ -6,15 +6,18 @@
 
 #include "LSM6.h"
 
-// driver pins for left motor - phase/enable interface
-#define LEFT_MOTOR_NSLEEP 6 //9
-#define LEFT_MOTOR_PHASE 2 //6
-#define LEFT_MOTOR_PE_ENABLE 5 //5
+// left motor registers
+#define LEFT_ENABLE_PWM_PIN OCR0B
+#define LEFT_PWM_PIN1 OCR1A
+#define LEFT_PWM_PIN2 OCR2B
 
-// driver pins for right motor - phase/enable interface
-#define RIGHT_MOTOR_NSLEEP 10 //11
-#define RIGHT_MOTOR_PHASE 12 //12
-#define RIGHT_MOTOR_PE_ENABLE 9 //10
+// right motor registers
+#define RIGHT_ENABLE_PWM_PIN OCR0A
+#define RIGHT_PWM_PIN1 OCR2A
+#define RIGHT_PWM_PIN2 OCR1B
+
+#define PWM_HIGH 255
+#define PWM_LOW 0
 
 // driver pins for right motor
 #define RIGHT_MOTOR_ENABLE_PIN 6
@@ -67,21 +70,17 @@ void control_motor(uint8_t motor, int8_t power, bool stop_mode);
 void control_motor_phase_en(uint8_t motor, int8_t power, bool stop_mode);
 
 // PID control on motor velocity and tick diff
-void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff, bool stop_mode);
+void motor_ctrl_vel_diff(int32_t desired_vel, int32_t desired_diff, bool stop_mode, int32_t dt_micros);
 
 // initialize motors
 void init_motors();
 
 // read velocities using the hall effect sensors in units of ticks per second
-void read_velocities();
+void read_velocities(uint32_t dt_micros);
 
 void position_control(LSM6 *imu, int32_t desired_position, int32_t max_velocity, int32_t desired_ang_vel);
 
-void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
-
-void balance_point_control_old(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
-
-void simple_pid_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel);
+void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_vel, int32_t dt_micros);
 
 void motor_ctrl_reset();
 

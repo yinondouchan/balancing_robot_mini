@@ -19,6 +19,6 @@ void compl_filter_init();
 
 // read gyro and accelerometer, apply complementary filter
 // return angle and angular velocities in millideg and millideg/sec respectively
-void compl_filter_read(LSM6 *imu);
+void compl_filter_read(LSM6 *imu, int32_t dt_micros);
 
 #endif // COMPL_FILTER

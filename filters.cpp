@@ -53,20 +53,10 @@ void compl_filter_init()
     read_once = false;
 }
 
-void compl_filter_read(LSM6 *imu)
+void compl_filter_read(LSM6 *imu, int32_t dt_micros)
 {
     // read accel and gyro
     imu->read();
-    long now = micros();
-    unsigned long dt = now - last_timestamp;
-    last_timestamp = now;
-    
-    // make sure accel and gyro were read at least one time for being able to integrate
-    if (!read_once)
-    {
-        read_once = true;
-        return;
-    }
     
     // calculate accel angle
     float angle_float_x = atan2(imu->a_raw.z, imu->a_raw.y) * 180 / M_PI;
@@ -82,9 +72,9 @@ void compl_filter_read(LSM6 *imu)
     //int64_t unbiased_gyro_z = imu->g.z - gyro_bias_z;
     
     // apply complementary filter 300 us
-    cf_angle_x = CF_CONST*(cf_angle_x + unbiased_gyro_x*dt/1000000) + (1.0 - CF_CONST)*accel_angle_x;
-    //cf_angle_y = CF_CONST*(cf_angle_y + unbiased_gyro_y*dt/1000000) + (1.0 - CF_CONST)*accel_angle_y;
-    //cf_angle_z = CF_CONST*(cf_angle_z + unbiased_gyro_z*dt/1000000) + (1.0 - CF_CONST)*accel_angle_z;
+    cf_angle_x = CF_CONST*(cf_angle_x + unbiased_gyro_x*dt_micros/1000000) + (1.0 - CF_CONST)*accel_angle_x;
+    //cf_angle_y = CF_CONST*(cf_angle_y + unbiased_gyro_y*dt_micros/1000000) + (1.0 - CF_CONST)*accel_angle_y;
+    //cf_angle_z = CF_CONST*(cf_angle_z + unbiased_gyro_z*dt_micros/1000000) + (1.0 - CF_CONST)*accel_angle_z;
     prev_cf_angle_x = cf_angle_x;
     //prev_cf_angle_y = cf_angle_y;
     //prev_cf_angle_z = cf_angle_z;

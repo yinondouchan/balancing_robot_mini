@@ -153,9 +153,9 @@ void LSM6::readAcc(void)
   Wire.endTransmission();
   Wire.requestFrom(address, (uint8_t)6);
 
-  uint16_t millis_start = millis();
+  uint16_t millis_start = MILLIS_PRESCALED;
   while (Wire.available() < 6) {
-    if (io_timeout > 0 && ((uint16_t)millis() - millis_start) > io_timeout)
+    if (io_timeout > 0 && ((uint16_t)MILLIS_PRESCALED - millis_start) > io_timeout)
     {
       did_timeout = true;
       return;
@@ -189,9 +189,9 @@ void LSM6::readGyro(void)
   Wire.endTransmission();
   Wire.requestFrom(address, (uint8_t)6);
 
-  uint16_t millis_start = millis();
+  uint16_t millis_start = MILLIS_PRESCALED;
   while (Wire.available() < 6) {
-    if (io_timeout > 0 && ((uint16_t)millis() - millis_start) > io_timeout)
+    if (io_timeout > 0 && ((uint16_t)MILLIS_PRESCALED - millis_start) > io_timeout)
     {
       did_timeout = true;
       return;

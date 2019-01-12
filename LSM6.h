@@ -2,6 +2,7 @@
 #define LSM6_h
 
 #include <Arduino.h>
+#include "definitions.h"
 
 class LSM6
 {

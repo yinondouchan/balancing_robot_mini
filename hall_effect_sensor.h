@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <Arduino.h>
+#include "definitions.h"
 
 //#define LEFT_MOTOR_HALL_EFFECT_OUT1_PIN 7
 //#define LEFT_MOTOR_HALL_EFFECT_OUT2_PIN 3
