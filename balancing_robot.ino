@@ -108,12 +108,6 @@ void setup()
     bt_init();
     bt_set_trim_callback(set_trimming);
     bt_set_estop_callback(on_estop);
-    
-    /*
-    // serial and i2c
-    Serial.begin(9600);
-    
-    timestamp = micros();*/
 }
 
 void loop()
@@ -152,31 +146,4 @@ void loop()
     {
         main_loop_triggered = false;
     }
-  /*unsigned long now = micros();
-  unsigned long dt = now - timestamp;
-  timestamp = now;
-
-  // get tilt angle
-  compl_filter_read(&imu);
-  x = cf_angle_x;
-
-  // get motor velocities in ticks per second
-  read_velocities();
-  
-  if ((x < -60000) || (x > 60000)) upright = false;
-  
-  bt_read_joystick_control();
-
-  // make sure the robot starts balancing itself only when it is upright. Also don't do anything if e-stop is on
-  if (!upright || estop)
-  {
-      motor_ctrl_reset();
-      control_motor(LEFT_MOTOR, 0, STOP_MODE_COAST);
-      control_motor(RIGHT_MOTOR, 0, STOP_MODE_COAST);
-      upright = (x > ((int32_t)BALANCE_ANGLE - 20000)) && (x < ((int32_t)BALANCE_ANGLE + 20000));
-      return;
-  }
-  // balance the robot
-  balance_point_control(&imu, bt_desired_vel, bt_desired_vel_diff);
-  delay(5);*/
 }
