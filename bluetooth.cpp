@@ -40,7 +40,6 @@ void bt_read_joystick_control()
     while (Serial.available() > 0)
     {
         in_byte = Serial.read();
-
         // if first byte of packet is read determine whether it is a joystick command or a button command
         if (buf_state == 0)
         {

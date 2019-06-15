@@ -34,7 +34,7 @@
 #define STOP_MODE_COAST 1
 
 // PID variables for velocity and difference control
-#define VELOCITY_P 0.03
+#define VELOCITY_P 0.05
 #define VELOCITY_I 0.0000004
 #define VELOCITY_D 0.00001
 

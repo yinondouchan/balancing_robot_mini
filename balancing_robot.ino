@@ -9,12 +9,14 @@
 LSM6 imu;
 
 int32_t x, y, z, wx, wy, wz, ctrl_vel, ctrl_pos;
-uint8_t counter;
+int8_t counter;
+int8_t vel_counter;
 unsigned long timestamp, time_diff, prev_timestamp;
 
 bool upright;
 bool estop;
 bool main_loop_triggered;
+bool vel_read_triggered;
 
 ISR(TIMER1_OVF_vect)
 {
@@ -79,7 +81,9 @@ void setup()
     upright = false;
     estop = false;
     counter = 0;
+    vel_counter = 0;
     main_loop_triggered = false;
+    vel_read_triggered = false;
     setup_timers();
     init_motors();
     init_hall_effect_sensors();
@@ -111,19 +115,23 @@ void setup()
 }
 
 void loop()
-{
+{   
     // triggered every 4096 microseconds (~250 Hz)
     if (!main_loop_triggered && (counter == 0))
     {
+        main_loop_triggered = true;
         uint8_t loop_start_counter = counter;
 
         // get motor velocities in ticks per second
         read_velocities(CYCLE_TIME_MICROS);
-        
+        Serial.print(motor_ctrl_right_velocity); Serial.print(" "); Serial.println(motor_ctrl_left_velocity);
+
         compl_filter_read(&imu, CYCLE_TIME_MICROS);
         x = cf_angle_x;
 
         if ((x < -60000) || (x > 60000)) upright = false;
+
+        bt_read_joystick_control();
 
         // make sure the robot starts balancing itself only when it is upright. Also don't do anything if e-stop is on
         if (!upright || estop)
@@ -132,15 +140,14 @@ void loop()
             control_motor(LEFT_MOTOR, 0, STOP_MODE_COAST);
             control_motor(RIGHT_MOTOR, 0, STOP_MODE_COAST);
             upright = (x > ((int32_t)BALANCE_ANGLE - 20000)) && (x < ((int32_t)BALANCE_ANGLE + 20000));
+            //bt_read_joystick_control();
             return;
         }
+
         // balance the robot
         balance_point_control(&imu, bt_desired_vel, bt_desired_vel_diff, CYCLE_TIME_MICROS);
 
-        bt_read_joystick_control();
-
         //if ((counter - prev_counter) > 1) Serial.println("Main loop missed a timer interrupt. Yikes!");
-        main_loop_triggered = true;
     }
     else if (counter != 0)
     {

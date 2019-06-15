@@ -1,4 +1,3 @@
-#include "ir.h"
 #include "LSM6.h"
 #include "filters.h"
 #include "motor_control.h"
@@ -136,8 +135,8 @@ void read_velocities(uint32_t dt_micros)
     int64_t tick_count_right = get_tick_count_right();
     
     // calculate velocity in ticks per second by calculating delta_ticks / delta_t (sec)
-    motor_ctrl_right_velocity = 1000000 * (tick_count_right - last_right_tick_count) / dt_micros;
-    motor_ctrl_left_velocity = 1000000 * (tick_count_left - last_left_tick_count) / dt_micros;
+    motor_ctrl_right_velocity = 0.2 * 1000000 * (tick_count_right - last_right_tick_count) / dt_micros + 0.8 * motor_ctrl_right_velocity;
+    motor_ctrl_left_velocity = 0.2 * 1000000 * (tick_count_left - last_left_tick_count) / dt_micros + 0.8 * motor_ctrl_left_velocity;
     
     // save tick counts for next iteration
     last_left_tick_count = tick_count_left;
@@ -153,12 +152,13 @@ void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_v
 
     // low pass filter on given linear velocity
     vel_lpf = VEL_LPF_TC2 / (VEL_LPF_TC2 + dt_micros) * vel_lpf + dt_micros / (VEL_LPF_TC2 + dt_micros) * vel;
+    //angle_lpf = 200000.0 / (200000.0 + dt_micros) * angle_lpf + dt_micros / (200000.0 + dt_micros) * angle;
 
     bp_i += 0.00001 * vel;
     CLIP(bp_i, -90000, 90000);
     int32_t bp_angle_offset = 20.0 * vel + bp_i * dt_micros + (7500000.0 / dt_micros) * (vel_lpf - prev_vel);
     CLIP(bp_angle_offset, -90000, 90000);
-    
+
     int32_t rising_angle_offset = ang_vel * ANGLE_RATE_RATIO + angle - BALANCE_ANGLE - bp_angle_offset;
 
     // add to power the tilt-angle element and the I element of the speed
@@ -173,6 +173,7 @@ void balance_point_control(LSM6 *imu, int32_t desired_vel, int32_t desired_ang_v
     motor_ctrl_vel_diff(power, desired_ang_vel, STOP_MODE_BRAKE, dt_micros);
 
     prev_vel = vel_lpf;
+    //prev_angle = angle_lpf;
 }
 
 
@@ -213,17 +214,8 @@ void set_trimming(int trimming_val)
 
 void calibrate_balance_angle()
 {
-    unsigned long now = micros();
-    unsigned long dt = now - calib_timestamp;
-    calib_timestamp = now;
-    if (!read_calib_timestamp_once) 
-    {
-        read_calib_timestamp_once = true;
-        return;
-    }
-    
     int vel = (motor_ctrl_right_velocity + motor_ctrl_left_velocity)/2;
-    trimming -= 0.00001 * vel * dt;
+    trimming -= 0.00001 * vel * 4096;
     CLIP(trimming, -5000, 5000);
 }
 
